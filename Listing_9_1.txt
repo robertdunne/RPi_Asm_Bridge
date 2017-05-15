@@ -1,0 +1,101 @@
+@	Subroutine das_dp will disassemble and display "data processing" instructions.
+@		R0: contains the instruction to be disassembled and displayed
+@		LR: Contains the return address
+@		All register contents will be preserved
+
+	.global	das_dp		@ Provide program starting address to linker
+
+das_dp:	push	{R0-R4,LR}	@ Save contents of registers R0 through R4 and LR.
+	mov	R3,R0		@ Move "instruction" to be disassembled to R3.
+
+@	Display opcode field of the data processing instruction: opcode{cond}{s} 
+@		Opcode		@ Opcode is in bits 24 down to 21
+@		Cond		@ Condition is in bits 31 down to 28
+@		S		@ "Set status codes" flag is in bit 20
+
+	ldr	R1,=tab		@ Pointer to horizontal tab string
+	bl	v_ascz		@ Tab precedes Opcode.
+	ldr	R1,=opcode	@ Pointer to table of Opcode names.
+	mov	R2,R3,lsl #7	@ "Shake off" unwanted bits on the left.
+	lsr	R2,#28		@ Right justify Opcode in R2.
+	add	R1,R1,R2,lsl #2	@ Set R1 pointing to specific Opcode name.
+	bl	v_ascz		@ Display Opcode name as text string.
+
+	ldr	R1,=cond	@ Pointer to table of condition codes.
+	mov	R2,R3,lsr #28	@ Right justify condition code in R2.
+	add	R1,R1,R2,lsl #2	@ Set R1 pointing to specific condition code.
+	bl	v_ascz		@ Display condition name as text string.
+
+	ldr	R1,=s_suf	@ Load pointer to string "s"
+	tst	R3,#1<<20	@ Test if instruction updates status flags.
+	blne	v_ascz		@ The "s" indicates status to be updated.
+
+@	Display the destination and source registers.
+@		D-reg		@ Destination register in bits 15 down to 12.
+@		S-reg		@ Source register is in bits 19 down to 16.
+
+	ldr	R1,=tabr	@ Pointer to horizontal tab and "R" string
+	bl	v_ascz		@ Tab and "R" precede destination register.
+	mov	R0,R3,lsl #16	@ Remove 16 bits left of the destination ID
+	lsr	R0,#28		@ Right justify register ID in R0
+	bl	v_dec		@ Display the number 0 through 15
+
+	ldr	R1,=comr	@ Pointer to comma and "R" string
+	bl	v_ascz		@ Comma and "R" precede source register.
+	mov	R0,R3,lsl #12	@ Remove 12 bits left of the source ID
+	lsr	R0,#28		@ Right justify register ID in R0
+	bl	v_dec		@ Display the number 0 through 15
+
+@	Close the instruction for now with a line feed.
+
+	ldr	R1,=nl		@ Pointer to line feed character string
+	bl	v_ascz		@ Line feed terminates line.
+
+	pop	{R0-R4,LR}	@ Restore saved register contents.
+	bx	LR		@ Return to the calling program
+
+@	Lists of mnemonic names used in various fields with ARM instruction format
+
+	.align	2	@ Start on 4-byte boundary.
+opcode:	.asciz	"and"	@ 0000 [Rd] = [Rn] AND (2nd operand)
+	.asciz	"eor"	@ 0001 [Rd] = [Rn] ExclusiveOr (2nd operand)
+	.asciz	"sub"	@ 0010 [Rd] = [Rn] - (2nd operand)
+	.asciz	"rsb"	@ 0011 [Rd] = (2nd operand) - [Rn]
+	.asciz	"add"	@ 0100 [Rd] = [Rn] + (2nd operand)
+	.asciz	"adc"	@ 0101 [Rd] = [Rn] + (2nd operand) + C
+	.asciz	"sbc"	@ 0110 [Rd] = [Rn] (2nd operand) + C - 1
+	.asciz	"rsc"	@ 0111 [Rd] = (2nd operand) - [Rn] + C - 1
+	.asciz	"tst"	@ 1000 [Rn] AND (2nd operand) => status bits
+	.asciz	"teq"	@ 1001 [Rn] ExclusiveOr (2nd operand)  => status
+	.asciz	"cmp"	@ 1010 [Rn] + (2nd operand) => status bits
+	.asciz	"cmn"	@ 1011 [Rn] - (2nd operand) => status bits
+	.asciz	"orr"	@ 1100 [Rd] = [Rn] InclusiveOR (2nd operand)
+	.asciz	"mov"	@ 1101 [Rd] = [Rn]
+	.asciz	"bic"	@ 1110 [Rd] = [Rn] AND NOT (2nd operand)
+	.asciz	"mvn"	@ 1111 [Rd] = NOT [Rn]
+
+cond:	.asciz	"eq\0"	@ 0000 Equal (zero); Z set
+	.asciz	"ne\0"	@ 0001 Not equal (non-zero); Z clear
+	.asciz	"hs\0"	@ 0010 Unsigned hiher or same; C set -- also "cs"
+	.asciz	"lo\0"	@ 0011 Unsigned lower; C clear --also "cc"
+	.asciz	"mi\0"	@ 0100 Minus or negative; N set
+	.asciz	"pl\0"	@ 0101 Plus or positive; N clear
+	.asciz	"vs\0"	@ 0110 Overflow; V set
+	.asciz	"vc\0"	@ 0111 No overflow; V clear
+	.asciz	"hi\0"	@ 1000 Unsigned higher; C set and Z clear
+	.asciz	"ls\0"	@ 1001 Unsigned lower or same; C clear or Z set
+	.asciz	"ge\0"	@ 1010 Signed greater than or equal to; N = V
+	.asciz	"lt\0"	@ 1011 Signed less than; N not same as V
+	.asciz	"gt\0"	@ 1100 Signed greater than; Z clear and N same as V
+	.asciz	"le\0"	@ 1101 Signed less than or equal; Z set or N != V
+	.asciz	"\0 \0"	@ 1110 Always; any status bits OK -- also "al"
+	.asciz	"??\0"	@ 1111 Never (reserved) -- also "nv"
+
+
+tab:	.asciz	"\t"	@ Strings to be displayed in disassembled instructions.
+tabr:	.asciz	"\tR"		@ Precedes destination register
+comr:	.asciz	",R"
+s_suf:	.asciz	"s"
+nl:	.asciz	"\n"
+	.end
+

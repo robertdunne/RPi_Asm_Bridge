@@ -1,0 +1,40 @@
+	.global	_start		@ Provide program starting address to linker
+	.equ	BUFSIZE,50	@ Size of input buffer can be changed
+
+@	Loop to get number from user, convert it to binary, and display it in multiple formats.
+
+_start:	ldr	R1,=prompt	@ Message asking for input of integer
+	bl	v_ascz		@ Display text line on monitor
+	ldr	R1,=inpbuf	@ Set pointer to input buffer.
+	mov	R2,#BUFSIZE	@ Maximum number of bytes to receive.
+	bl	c_ascz		@ Call subroutine to get keyboard input.
+	bl	c_int		@ Convert ASCII string to binary number in R0.
+
+@	Display integer in decimal, hexadecimal, and binary.
+
+	ldr	R1,=msgtxt	@ Document what is being displayed on monitor
+	bl	v_ascz		@ Display text line on monitor
+	ldr	R1,=spacer	@ Pointer to comma and blank "number separator."
+	bl	v_dec		@ Subroutine to view decimal value in ASCII.
+	bl	v_ascz		@ Put spacer between numbers being displayed.
+	mov	R2,#0		@ Tell subroutine v_hex "no leading zeroes."
+	bl	v_hex		@ Subroutine to view hexadecimal value of R0.
+	bl	v_ascz		@ Put spacer after the hexadecimal format.
+	mov	R2,#16		@ Tell subroutine v_bin to display only 16 bits.
+	bl	v_bin		@ Subroutine to view binary value of R0 in ASCII.
+	ldr	R1,=newln	@ Set pointer to "new line" character string.
+	bl	v_ascz		@ Put a line feed after binary display.
+	cmp	R0,#0		@ Test for zero value to end loop.
+	bne	_start		@ Go prompt user for another number.
+
+	mov	R0,#0		@ Exit code 0 indicates "normal completion"
+	mov	R7,#1		@ Service command code to terminate program
+	svc	0		@ Issue Linux command to terminate program
+
+	.data
+inpbuf:	.ds	BUFSIZE		@ Reserve storage for input data characters
+prompt:	.asciz	"Please enter an integer followed by the Enter key. Zero to stop.\n"
+msgtxt:	.asciz	"Decimal, hexadecimal, and binary: "	@ Display message
+spacer:	.asciz	", "		@ Separator for display (comma, blank)
+newln:	.asciz	"\n"		@ End of line (It will be 0x0A)
+	.end

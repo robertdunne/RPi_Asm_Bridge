@@ -1,0 +1,12 @@
+	.global	_start		@ Provide program starting address to linker
+_start:	ldr	R1,=msgtxt	@ Set R1 pointing to message to be displayed
+	mov	R2,#10		@ Number of bytes in message
+	mov	R0,#1		@ Code for stdout (standard output, i.e., monitor display)
+	mov	R7,#4		@ Linux service command code to write string.
+	svc	0		@ Issue command to display string on stdout
+	mov	R0,#0		@ Exit Status code set to 0 indicates "normal completion"
+	mov	R7,#1		@ Service command code (1) will terminate this program
+	svc	0		@ Issue Linux command to terminate program
+	.data
+msgtxt:	.ascii	"Hey there\n"	@ 10 character message (" " and "\n" each count as 1 char.)
+	.end

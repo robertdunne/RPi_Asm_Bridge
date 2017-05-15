@@ -1,0 +1,22 @@
+	.global	_start		@ Program starting address for linker
+_start:	ldr	R6,=tstlst	@ Point to list of test values.
+sample:	ldr	R0,[R6],#4	@ Load next "instruction" to disassemble.
+	bl	das_ls		@ Disassemble load/store instruction.
+	cmp	R0,#0		@ Test if end of list of test values.
+	bne	sample		@ Stop test loop after a zero value.
+	mov	R0,#0		@ Exit Status code 0 for "normal completion"
+	mov	R7,#1		@ Service code 1 terminates program.
+	svc	0		@ Issue Linux command to stop program
+
+@	List of load/store sample instructions to disassemble
+
+tstlst:	ldr	R0,[R2],#15	@ Post-indexed instructions
+	str	R5,[R6],#3000
+	strb	R8,[R10],#500
+	ldr	SP,[R0],#20	@ Stack pointer being loaded
+	str	LR,[R11]	@ No post increment value provided
+	ldr	R1,[R2,#3]	@ Pre-indexed instructions
+	strb	R3,[R4,#5]!	@ Pre-indexed (up) with write-back.
+	ldrb	R0,[R2,#-128]!	@ Pre-indexed (down) with write-back.
+	.word	0		@ End of list.
+	.end

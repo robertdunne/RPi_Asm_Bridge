@@ -1,0 +1,96 @@
+@	Subroutine c_flt will convert input buffer to floating point format
+@		R1: Points to string containing "real number" of form 123.456
+@		LR: Contains the return address
+@		R0: Returned with floating point value (converted from ASCII input string)
+@		R1: Returned pointing to first character after number.
+@		All register contents except R0 and R1 will be preserved.
+
+	.global	c_flt		@ Enable linker to see subroutine entry point.
+c_flt:	push	{R2-R6}		@ Save contents of registers R2 through R6.
+
+@	Register usage in this subroutine
+@		R0: Contents of next ASCII "digit" from input buffer
+@		R1: Points to next byte in input buffer
+@		R2: Number of digits right of decimal point
+@		R3: Accumulated value of significant being constructed
+@		R4: =10: Decimal base value needed to "shift" digits
+@		R5: "Flag" (=1) indicating decimal point present
+@*		R6: Value of exponent (power of ten) such as -34 in 6.6E-34.
+
+	mov	R2,#0		@ Count of number of digits right of decimal point
+	mov	R3,#0		@ Initialize R3 for value of real number being converted.
+	mov	R4,#10		@ Decimal, base 10, used to "shift" value in significant
+	mov	R5,#0		@ 0 => no decimal point, 1 => decimal point encountered
+
+@	Loop to read each of the significant digits of the floating point number
+
+nxtdig:	ldrb	R0,[R1],#1	@ Load next character from input buffer.
+	subs	R0,#'0'		@ Subtract the ASCII character bias.
+	blt	notdig		@ Check if end of string of digits has been reached.
+	cmp	R0,#9		@ Check upper limit of digits range.
+	bgt	notdig		@ Go exit if end of string of digits found.
+	mla	R3,R4,R3,R0	@ Shift accumulated value and add. [R3] = [R4]*[R3] + [R0]
+	add	R2,R5		@ Increment number of places right of decimal point.
+	b	nxtdig		@ Continue loop with next digit from input buffer.
+
+@	If non-digit is the decimal point, set flag to start counting digits
+
+notdig:	add	R0,#'0'		@ Restore the character bias.
+	cmp	R0,#'.'		@ Test for decimal point
+	moveq	R5,#1		@ Value of R5 to be added to count in R2
+	beq	nxtdig		@ Continue converting base, but count decimal places, too.
+
+@*	Non-digit of 'E' or 'e' indicates the beginning of a base ten exponent.
+
+	cmp	R0,#'E'		@*Test for the exponent being present.
+	cmpne	R0,#'e'		@*Test for the exponent being present.
+	bne	sigexp		@*End of number; Go combine signifant and exponent.
+	ldrb	R0,[R1]		@*Load next character after the E or e
+	cmp	R0,#'+'		@*Test for the Positive exponent being present.
+	addeq	R1,#1		@*Load character after the plus sign.
+	cmp	R0,#'-'		@*Test for a negative exponent being present.
+	moveq	R5,#-1		@*Set flag that exponent is negative.
+	mov	R6,#0		@*Initial value of exponent, 10^0 = 1
+
+@	Read the value of the exponent (such formats as 6.02E23, 6.02E+23, 6.6E-34)
+
+nxtexp:	ldrb	R0,[R1],#1	@*Load next character from input buffer.
+	subs	R0,#'0'		@*Subtract the ASCII character bias.
+	blt	finexp		@*Check if end of string of digits has been reached.
+	cmp	R0,#9		@*Check upper limit of digits range.
+	bgt	finexp		@*Go exit if end of string of digits found.
+	mla	R6,R4,R6,R0	@*Shift accumulated value and add. [R6] = [R4]*[R6] + [R0]
+	b	nxtexp		@*Continue loop with next digit from input buffer.
+
+@*	Finish the exponent by combining number of decimal places with exponent value.
+
+finexp:	cmp	R5,#0		@*Set Z-flag if exponent is negative
+	addlt	R2,R6		@*Combine negative exponent with number of decimal places.
+	subge	R2,R6		@*Combine positive exponent with number of decimal places.
+
+@	Combine significant and decimal shift count using the floating point processor.
+
+sigexp:	vmov	S3,R3		@ Move integer significant into floating point register.
+	vcvt.f32.s32 S0,S3	@ Convert significant from integer to floating point.
+	cmp	R2,#0		@*Test if decimal "shift" will be left or right.
+	beq	cpy2R0		@*If none, then go copy "whole" number.
+	vldrgt	S1,point1	@*Copy decimal 0.1 into floating point register.
+	vldrlt	S1,dec10	@*Copy decimal 10.0 into floating point register.
+	rsblt	R2,R2,#0	@*Take absolute value of exponent.
+	subs	R2,#1		@ Decrement number of places right of decimal point.
+	beq	combbe		@ For 1 decimal place, go multiply significant one time.
+	vmov	S2,S1		@ Extra copy of 0.10 or 10.0 for multiplication loop.
+pow10:	vmul.f32 S1,S2		@ Change final value by a factor of 10
+	subs	R2,#1		@ Decrement number of decimal places to "shift"
+	bgt	pow10		@ Continue loop to "shift decimal point" 
+combbe:	vmul.f32 S0,S1		@ Finish by combining significant and exponent.
+cpy2R0:	vmov	R0,S0		@ Move finished floating pointer number for return.
+	sub	R1,#1		@ Set R1 pointing to character that stopped scan.
+
+	pop	{R2-R6}		@ Reload saved register contents.
+	bx	LR		@ Return to the calling program.
+
+point1:	.float	0.1		@ Floating point value to "shift" number to the right 1 place.
+dec10:	.float	10.0		@*Floating point value to "shift" number to the left 1 place. 
+	.end
+

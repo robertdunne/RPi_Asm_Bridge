@@ -1,0 +1,28 @@
+	.global	_start		@ Provide program starting address to linker
+_start:	ldr	R6,=tstval	@ Point to list of test values.
+sample:	ldr	R0,[R6],#4	@ Load next 32-bit floating point test value.
+	bl	v_flt		@ Subroutine to display floating point number.
+	ldr	R1,nl		@ Pointer to line ending characters.
+	bl	v_ascz		@ Separate the test values with new lines.
+	cmp	R0,#0		@ Test if end of list of test values.
+	bne	sample		@ Stop test loop after processing a zero value.
+
+	mov	R0,#0		@ Exit Status of 0 indicates "normal completion"
+	mov	R7,#1		@ Service command code 1 terminates program
+	svc	0		@ Issue Linux command to terminate program
+
+	.data
+tstval:	.float	0.5		@ .5      (1/2)
+	.float	0.25		@ .25     (1/4)
+	.float	-1.0
+	.float	100.0
+	.float	1234.567
+	.float	-9876.543
+	.float	7070.7070
+	.float	3.3333
+	.float	694.3e-9
+	.float	6.0221e2
+	.float	6.0221e23
+	.word	0		@ End of list
+nl:	.asciz	"/n"		@ Line ending characters.
+	.end

@@ -1,0 +1,34 @@
+	.global	_start		@ Program starting address for linker
+
+@	Macro "flt_d SX" displays register SX contents as floating point
+	.macro	flt_d	SX	@ SX is S0, S1, ..., S31
+	vmov	R0,\SX		@ Move register to ARM for display.
+	bl	v_flt		@ Display floating point number.
+	ldr	R1,=nl		@ Pointer to line ending characters.
+	bl	v_ascz		@ Separate test values with new lines.
+	.endm
+
+_start:	ldr	R6,=tstval	@ Point to list of test values.
+sample:	vld2.32	{Q0,Q1},[R6]!	@ Load 4 pairs of 32-bit numbers.
+	vmul.f32 Q0,Q0,Q1	@ Multiply the 4 pairs of numbers.
+	flt_d	S0		@ Display first product of set.
+	flt_d	S1		@ Display second product of set.
+	flt_d	S2		@ Display third product of set.
+	flt_d	S3		@ Display fourth product of set.
+	cmp	R1,R6		@ Test if end of list of test values.
+	bgt	sample		@ Cintinue loop untill all tests done.
+
+	mov	R0,#0		@ Status 0 indicates "normal completion"
+	mov	R7,#1		@ Command code 1 will terminate program.
+	svc	0		@ Issue Linux command to terminate program.
+
+tstval: .float	3.0, 10.0	@ Floating point test values
+	.float	0.25, -1.0
+	.float	100.0, 1234.567
+	.float	-9876.543, 7070.7070
+	.float	3.3333, 694.3e-9
+	.float	11.08, 360.195
+	.float	12.0e20, 12.0e-22
+	.float	6.0221e2, 6.0221e23
+nl:	.asciz	"\n"		@ Line ending character.
+	.end

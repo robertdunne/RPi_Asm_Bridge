@@ -1,0 +1,24 @@
+	.global	_start		@ Provide program starting address to linker
+_start: ldr	R6,=tstval	@ Point to list of test values.
+sample: vldm	R6!,{D0,D1}	@ Load next two 64-bit values.
+	vmul.f64 D0,D0,D1	@ Multiply the two floating point operands
+	vcvt.f32.f64 S0,D0	@ Convert product back into single precision
+	vmov	R0,S0		@ Move the product into ARM register for display.
+	bl	v_flt		@ Call subroutine to display floating point number.
+	ldr	R1,=nl		@ Pointer to line ending characters.
+	bl	v_ascz		@ Separate the floating point test values.
+	cmp	R0,#0		@ Test if end of list of test values.
+	bne	sample		@ Stop test loop after processing a zero value.
+	mov	R0,#0		@ Exit Status code 0 indicates "normal completion"
+	mov	R7,#1		@ Service command code to terminate this program.
+	svc	0		@ Issue Linux command to terminate program
+	.data
+tstval: .double	3.0, 10.0	@ Double precision floating point
+	.double	0.25, -1.0
+	.double	100.0, 1234.567
+	.double	-9876.543, 7070.7070
+	.double	3.3333, 694.3e-9
+	.double	6.0221e2, 6.0221e23
+	.double	0, 0		@ End of list
+nl:     .asciz	"\n"		@ Line ending characters.
+	.end

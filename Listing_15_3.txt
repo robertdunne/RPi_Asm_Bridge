@@ -1,0 +1,24 @@
+	.global	_start		@ Set program starting address to linker.
+_start: ldr	R6,=tstval	@ Point to list of test values.
+	vldm	R6!,{D1}	@ Load next 64-bit test value.
+	mov	R2,#32		@ Subroutine v_hex to display 32 bits.
+sample:	vldm	R6!,{D2}	@ Load second operand for operation.
+	vand	D0,D1,D2	@ Perform the logical operation
+	vmov	R0,S1		@ Move the high word into ARM for display.
+	bl	v_hex		@ Call subroutine to display output.
+	vmov	R0,S0		@ Move the low word into ARM for display.
+	bl	v_hex		@ Display 2nd 32 bits.
+	ldr	R1,=nl		@ Pointer to line ending character.
+	bl	v_ascz		@ Separate the test values.
+	cmp	R6,R1		@ Test for end of list of test values.
+	blt	sample		@ Cotinue loop for next value in list.
+	mov	R0,#0		@ Status code 0 for "normal completion"
+	mov	R7,#1		@ Service command code terminates program.
+	svc	0		@ Issue Linux command to terminate program
+	.data
+tstval: .ascii	"ABCDEFGH"	@ Double words for logical tests
+	.word	0xFFFFFFFF,0xFFFFFFFF
+	.word	0xFFFFFFFF,0xFF00FF00
+	.word	0xFF00FF00,0xFFFFFFFF
+nl:     .asciz	"\n"		@ End of list and new line character.
+	.end

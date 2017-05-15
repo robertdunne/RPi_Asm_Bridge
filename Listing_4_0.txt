@@ -1,0 +1,26 @@
+	.global	_start	@ Provide program starting address to linker
+_start:	mov R0,#1	@ A value of 1 indicates “True"
+	bl	v_bool	@ Call subroutine to display “True” or “False".
+	mov	R0,#0	@ Exit Status code of 0 for “normal completion"
+	mov	R7,#1	@ Service command 1 terminates this program
+	svc	0	@ Issue Linux command to terminate program
+
+@	Subroutine v_bool will display “True” or “False” on the monitor
+@		R0: contains 0 implies false; non-zero implies true
+@		LR: Contains the return address
+@		Registers R0 through R7 will be used by v_bool and not saved
+
+v_bool: cmp	R0,#0	@ Set condition flags for True or False.
+	ldrne	R1,=T_msg @ Load pointer to “True” if z-flag clear.
+	ldreq	R1,=F_msg @ Load pointer to “False” if z-flag set.
+	mov	R2,#6	@ Number of characters to be displayed at a time.
+	mov	R0,#1	@ Code for stdout (standard output, monitor)
+	mov	R7,#4	@ Linux service command code to write.
+	svc	0	@ Call Linux command.
+
+	bx	LR	@ Return to the calling program
+
+	.data
+T_msg:	.ascii	"True  “ @ ASCII string to display if true
+F_msg:	.ascii	"False " @ ASCII string to display if false
+	.end

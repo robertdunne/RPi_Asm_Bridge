@@ -1,0 +1,31 @@
+	.global	_start		@ Provide program starting address to linker
+	.equ	BUFSIZE,50	@ Size of input buffer can be changed
+
+@	Write message prompting for input from keyboard.
+
+_start:	ldr	R1,=prompt	@ Set R1 pointing to prompt message
+	bl	v_ascz		@ Display message prompting user for input or exit
+
+@	Read a line from the keyboard
+
+	ldr	R1,=msgtxt	@ Set R1 pointing to input buffer
+	mov	R2,#BUFSIZE	@ Maximum number of bytes to enter.
+	bl	c_ascz		@ Fill ASCII input buffer
+
+@	Convert text to floating point and echo the value back to user.
+
+	bl	c_flt		@ String to convert to floating point.
+	bl	v_flt		@ Display floating point value.
+	cmp	R0,#0		@ Test if zero to force exit from loop.
+	bne	_start		@ Continue the loop and get next input.
+
+@	Exit this program with no errors flagged.
+
+	mov	R0,#0		@ Exit Status code 0 says "normal completion"
+	mov	R7,#1		@ Service command code 1 terminates program.
+	svc	0		@ Issue Linux command to terminate program
+
+	.data
+prompt:	.asciz	"\nEnter next number or 0 to quit.\n"
+msgtxt:	.ds	BUFSIZE		@ Reserve storage for input data characters
+	.end

@@ -1,0 +1,33 @@
+@	Subroutine c_bool will look for True in a text line
+@		R1: Points to buffer containing True or False
+@		R2: Maximum number of bytes in above buffer
+@		LR: Contains the return address
+
+@	Returned register contents:
+@		R0: =1 if first non-blank character is T, t, or 1.
+@		    =0 otherwise
+@		All other register contents will be preserved
+
+	.global	c_bool		@ Pass entry point name to linker.
+
+c_bool:	push	{R1-R4}		@ Save contents of registers used.
+	mov	R0,#0		@ Assume False (until T, t, or 1)
+
+nxtdig:	subs	R2,#1		@ Check for end of buffer.
+	blt	exit		@ Assume False if nothing found.
+	ldrb	R3,[R1],#1	@ Load next character from buffer.
+	cmp	R3,#' '		@ Test if it's a blank
+	cmpne	R3,#9		@ Test for horizontal tab (ASCII 09)
+	beq	nxtdig		@ Search for non-blank
+
+@	Consider anything beginning with a "T" or 1 to indicate True
+
+	cmp	R3,#'T'		@ Assume "True" "Truth" ...
+	cmpne	R3,#'t'		@ "true"
+	cmpne	R3,#'1'		@ Let "1" also indicate true
+	moveq	R0,#1		@ Return value of True
+
+exit:	pop	{R1-R4}		@ Reload saved register contents.
+	bx	LR		@ Return to the calling program.
+	.end
+

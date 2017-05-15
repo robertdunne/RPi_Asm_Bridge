@@ -1,0 +1,25 @@
+	.global	_start		@ Starting address for linker
+_start: ldr	R1,=A2X		@ Memory buffer for output from NEON.
+	vldm	R1,{D0-D2}	@ Load "AB...WX" into 3 64-bit registers.
+	ldr	R1,=result	@ Memory buffer for "interleaved" output.
+
+	vstm	R1,{D0-D2}	@ Save exact copy for display.	
+	bl	v_ascz		@ Display
+	vst1.8	{D0-D2},[R1]	@ Save as 1 "element" of 8 bits each	
+	bl	v_ascz		@ Display
+	vst3.8	{D0-D2},[R1]	@ Save as 3 "elements" of 8 bits each
+	bl	v_ascz		@ Display
+	vst3.16	{D0-D2},[R1]	@ Save as 3 "elements" of 16 bits each
+	bl	v_ascz		@ Display
+	vst3.32	{D0-D2},[R1]	@ Save as 3 "elements" of 32 bits each
+	bl	v_ascz		@ Display
+
+	mov	R0,#0		@ Status 0 indicates "normal completion"
+	mov	R7,#1		@ Service command terminates this program.
+	svc	0		@ Issue Linux command to stop program.
+	.data
+A2X:	.ascii	"ABCDEFGHIJKLMNOPQRSTUVWX" @ 24 bytes
+result:	.ds	12		@ Reserve room for "interleaved" store.
+	.asciz	"\n"		@ Line feed and null to terminate string.
+	.end
+

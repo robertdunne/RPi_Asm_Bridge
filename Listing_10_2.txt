@@ -1,0 +1,58 @@
+	.global	_start		@ Provide program starting address to linker
+_start:	ldr	R6,=tstlst	@ Point to list of test values.
+	mov	R0,#0		@ Initialize running total to zero.
+sample:	ldr	R1,[R6],#4	@ Load next 32-bit value from list.
+	add	R0,R1		@ Add new value to running total.
+	cmp	R1,#0		@ Test if we've reached end of list of test values.
+	bne	sample		@ Stop test loop after processing a zero value.
+	bl	v_fix2		@ Display final sum of all values in list.
+	mov	R0,#0		@ Exit Status code set to 0 indicates "normal completion"
+	mov	R7,#1		@ Service command code (1) will terminate this program
+	svc	0		@ Issue Linux command to terminate program
+
+	.data
+tstlst:				@ List of integers representing fixed point values.
+	.word	25		@ Represents 0.25
+	.word	111		@ Represents 1.11
+	.word	-267		@ Represents -2.67
+	.word	1234		@ Represents 12.34
+	.word	0		@ End of list
+	.end
+1. .global _start @ Provide program starting address to linker
+2. _start: ldr R6,=tstlst @ Point to list of test values.
+3. mov R3,#0 @ Initialize running total to zero.
+4. sample: ldr R0,[R6],#4 @ Load next 32-bit value from list.
+5. bl v_dec @ Display the next number in the list.
+6. ldr R1,=nl @ Point to memory buffer containing Line Feed
+character.
+7. bl v_ascz @ Put each number in list on a separate list.
+8. add R3,R0 @ Add new value to running total.
+9. cmp R0,#0 @ Test if we've reached end of list of test
+values.
+10. bne sample @ Stop test loop after processing a zero value.
+11. ldr R1,=dashes @ Point to memory buffer containing dashes.
+12. bl v_ascz @ Separate the list from the total.
+13. mov R0,R3 @ Move running total to R0 for display.
+14. bl v_dec @ Display final sum of all values in list.
+15. ldr R1,=nl @ Point to memory buffer containing Line Feed
+character.
+16. bl v_ascz @ Put each number in list on a separate list.
+17. mov R0,#0 @ Exit Status code set to 0 indicates "normal
+completion"
+18. mov R7,#1 @ Service command code 1 terminates this
+program.
+224 Assembly Language using the Raspberry Pi
+19. svc 0 @ Issue Linux command to terminate program
+20.
+21. .data
+22. tstlst: @ List of integers representing fixed point
+values.
+23. .word 25 @ Represents 0.25
+24. .word 111 @ Represents 1.11
+25. .word -267 @ Represents -2.67
+26. .word 1234 @ Represents 12.34
+27. .word -7 @ Represents -0.07
+28. .word 0 @ End of list
+29. dashes: .asciz "-----\n" @ Line to separate list from sum
+30. nl: .asciz "\n" @ Go to new line
+31. .end

@@ -1,0 +1,183 @@
+@	Subroutine das_dp will disassemble and display ARM "data processing" instructions.
+@		R0: contains the instruction to be disassembled and displayed
+@		LR: Contains the return address
+@		All register contents will be preserved
+
+	.global	das_dp		@ Provide program starting address to linker
+
+@	Macro "ascz8 item" appends an item to list of field names in an instruction.
+
+	.macro	ascz8	item
+	.asciz	"\item"		@ Name of item in list	
+	.align	3		@ Move to next 8-byte alignment boundary.
+	.endm
+
+@	Macro "d_int format,prefix" displays formatted integer value. 
+@		format:		Format: dec, hex, bin (decimal, hexadecimal, binary) 
+@		prefix:		String to display before integer.
+
+	.macro	d_int	format,prefix
+	ldr	R1,=\prefix	@ Pointer to string to output before integer
+	bl	v_ascz		@ Display text string terminated by a null.
+	.ifc	\format,hex
+	mov	R2,#0		@ Code to print no leading zeroes
+	.endif
+	bl	v_\format	@ Call one of the display subroutines in view.o.
+	.endm
+
+@	Macro "d_fld field,leftbit,rightbit,prefix" displays field in instructions. 
+@		field:		Beginning of table containing list of field names 
+@		leftbit:	Bit position of left side of field
+@		rightbit:	Bit position of right side of field
+@		prefix:		String to be output before field
+
+@	Examples to generate the name of following fields from register R3:
+@		d_fld	reg,15,12,comma		@ Register name in bits 15..12
+@		d_fld	opcode,24,21,tab	@ Opcode name in bits 24..21
+
+
+@	Registers used by macro "d_fld" (R1, R2, LR used and not preserved):
+@		R3:	Input containing the instruction to be disassembled.
+@		R1:	Used as pointer into list of mnemonic names.
+@		R2:	Used to "pull out" desired segment of instruction.
+@		LR:	Used to call subroutines.
+
+@	Parameters generated in macro:
+@		left:	Left shift count to get rid of extra bits on left
+@		right:	Right shift count to right justify selected "field"	
+
+	.macro	d_fld	field,leftbit,rightbit,prefix=0
+	.ifnc   \prefix,0
+	ldr	R1,=\prefix	@ Pointer to string to output before op code
+	bl	v_ascz		@ Display text string terminated by a null.
+	.endif
+	.set	left,  31-\leftbit
+	.set	right, left + \rightbit
+	ldr	R1,=\field	@ Pointer to beginning of table of fields to display
+	mov	R2,R3,lsl #left	@ "Shake off" unwanted bits on the left.
+	lsr	R2, #right	@ "Shake off" unwanted bits on the right.
+	add	R1,R1,R2,lsl #3	@ Set R1 pointing to specific field name to display.
+	bl	v_ascz		@ Display field name as text string ending with a null.
+	.endm
+
+@	Subroutine das_dp will disassemble and display "data processing" instructions.
+@		R0: contains the instruction to be disassembled and displayed
+@		LR: Contains the return address
+@		All register contents will be preserved
+
+das_dp:	push	{R0-R4,LR}	@ Save contents of registers R0 through R4 and LR.
+	mov	R3,R0		@ Move "instruction" to R3 where macro will use it.
+
+@	Display beginning of the data processing instruction: opcode{cond}{s} Rd,Rn
+
+	d_fld	opcode,24,21,tab @ Opcode is in bits 24 down to 21
+	d_fld	cond,31,28	@ Condition is in bits 31 down to 28
+	d_fld	s,20,20		@ "Set status codes" flag is in bit 20
+	d_fld	reg,15,12,tab	@ Destination register is in bits 15 down to 12
+	d_fld	reg,19,16,comma	@ Source register is in bits 19 down to 16
+
+@	There are two formats for the second operand: immediate value or register.
+@	If the immediate bit is set, display the 2nd operand in decimal and hex.
+
+	tst	R3,#0x02000000	@ Check if "immediate" bit is set for 2nd operand.
+	beq	shreg		@ If no immediate bit, 2nd operand uses register.
+	and	R0,R3,#0xFF	@ Move base value of immediate operand ino R0.
+	lsr	R2,R3,#7	@ "Almost" right justify shift count (times two).
+	and	R2,#0b11110	@ Total shift count is double the value in field.
+	ror	r0,R2		@ Complete the immediate value using a rotate.
+	d_int	dec,hstcom	@ Display the immediate value in decimal.
+	d_int	hex,hstat	@ Display the immediate value in hexadecimal.
+	b	dpfin		@ Go finish the disassembly with a line feed.
+
+@	The 2nd operand is a shift. Display the register to be shifted and shift type.
+
+shreg:	d_fld	reg,3,0,comma	@ Base register is in bits 3 down to 0
+	d_fld	shift,6,5,comma	@ Shift type is in bits 6 down to 5.
+	tst	R3,#0b010000	@ Check if "constant" shift or register value.
+	bne	shrr		@ If bit set, shift count is in register.
+	mov	R0,R3, lsl #20	@ Copy and left justify immediate shift count.
+	lsr	R0,#27		@ Right justify shift count to "shake off" bits.
+	d_int	dec,hst		@ Display the immediate shift in decimal.
+	b	dpfin		@ Go finish the disassembly with a line feed.
+
+@	The 2nd operand is a register shifted by the contents of a register
+
+shrr:	d_fld	reg,11,8,blank	@ Shift register is in bits 11 down to 8
+
+@	Finish the disassembled instruction with a line feed and then return.
+
+dpfin:	ldr	R1,=nl		@ Line feed to finish the disassembled instruction.		
+	bl	v_ascz
+	pop	{R0-R4,LR}	@ Restore saved register contents.
+	bx	LR		@ Return to the calling program
+
+@	Lists of mnemonic names used in various fields with ARM instruction format
+
+	.align	3	@ Start on 8-byte boundary.
+opcode:	ascz8	and	@ 0000 [Rd] = [Rn] AND (2nd operand)
+	ascz8	eor	@ 0001 [Rd] = [Rn] ExclusiveOr (2nd operand)
+	ascz8	sub	@ 0010 [Rd] = [Rn] - (2nd operand)
+	ascz8	rsb	@ 0011 [Rd] = (2nd operand) - [Rn]
+	ascz8	add	@ 0100 [Rd] = [Rn] + (2nd operand)
+	ascz8	adc	@ 0101 [Rd] = [Rn] + (2nd operand) + C
+	ascz8	sbc	@ 0110 [Rd] = [Rn] (2nd operand) + C - 1
+	ascz8	rsc	@ 0111 [Rd] = (2nd operand) - [Rn] + C - 1
+	ascz8	tst	@ 1000 [Rn] AND (2nd operand) => status bits
+	ascz8	teq	@ 1001 [Rn] ExclusiveOr (2nd operand)  => status bits
+	ascz8	cmp	@ 1010 [Rn] + (2nd operand) => status bits
+	ascz8	cmn	@ 1011 [Rn] - (2nd operand) => status bits
+	ascz8	orr	@ 1100 [Rd] = [Rn] InclusiveOR (2nd operand)
+	ascz8	mov	@ 1101 [Rd] = [Rn]
+	ascz8	bic	@ 1110 [Rd] = [Rn] AND NOT (2nd operand)
+	ascz8	mvn	@ 1111 [Rd] = NOT [Rn]
+
+cond:	ascz8	eq	@ 0000 Equal (zero); Z set
+	ascz8	ne	@ 0001 Not equal (non-zero); Z clear
+	ascz8	hs	@ 0010 Unsigned hiher or same; C set -- also "cs"
+	ascz8	lo	@ 0011 Unsigned lower; C clear --also "cc"
+	ascz8	mi	@ 0100 Minus or negative; N set
+	ascz8	pl	@ 0101 Plus or positive; N clear
+	ascz8	vs	@ 0110 Overflow; V set
+	ascz8	vc	@ 0111 No overflow; V clear
+	ascz8	hi	@ 1000 Unsigned higher; C set and Z clear
+	ascz8	ls	@ 1001 Unsigned lower or same; C clear or Z set
+	ascz8	ge	@ 1010 Signed greater than or equal to; N same as V
+	ascz8	lt	@ 1011 Signed less than; N not same as V
+	ascz8	gt	@ 1100 Signed greater than; Z clear and N same as V
+	ascz8	le	@ 1101 Signed less than or equal; Z set or N not same as V
+	ascz8	\0	@ 1110 Always; any status bits OK -- also "al"
+	ascz8	??	@ 1111 Never (reserved) -- also "nv"
+
+reg:	ascz8	R0	@ 0000 GRegister set names
+	ascz8	R1	@ 0001 
+	ascz8	R2	@ 0010 
+	ascz8	R3	@ 0011 
+	ascz8	R4	@ 0100 
+	ascz8	R5	@ 0101
+	ascz8	R6	@ 0110
+	ascz8	R7	@ 0111
+	ascz8	R8	@ 1000
+	ascz8	R9	@ 1001
+	ascz8	R10	@ 1010
+	ascz8	R11	@ 1011
+	ascz8	R12	@ 1100
+	ascz8	LR	@ 1101 Could also be "R13"
+	ascz8	SP	@ 1110 Could also be "R14"
+	ascz8	PC	@ 1111 Could also be "R15"
+
+shift:	ascz8	lsl	@ 00 Logical Shift Left
+	ascz8	lsr	@ 01 Logical Shift Right
+	ascz8	asr	@ 10 Algebraic Shift Right
+	ascz8	ror	@ 11 Rotate Right (Circular shift)
+
+s:	ascz8	\0	@ 0 Set status bit "s" is zero
+	ascz8	s	@ 1 Set status bit "s" is one
+
+tab:	.asciz	"\t"	@ Strings to be displayed in instructions.
+comma:	.asciz	","
+blank:	.asciz	" "
+hst:	.asciz	" #"
+hstcom:	.asciz	", #"
+hstat:	.asciz	"\t@ #0x"
+nl:	.asciz	"\n"
+	.end

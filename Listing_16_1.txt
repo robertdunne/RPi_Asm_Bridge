@@ -1,0 +1,25 @@
+	.global	_start		@ Provide program starting address to linker
+	.equ	BUFSIZE,50	@ Size of input buffer can be changed
+
+@	Loop to get next line from user.
+
+_start:	ldr	R1,=prompt	@ Message asking for input of integer
+	bl	v_ascz		@ Display text line on monitor
+	ldr	R1,=inpbuf	@ Set pointer to input buffer.
+	mov	R2,#BUFSIZE	@ Maximum number of bytes to receive.
+	bl	c_ascz		@ Call subroutine to get keyboard input.
+
+@	Echo line back to user.
+
+	bl	v_ascz		@ Redisplay textline just entered.
+	cmp	R0,#1		@ Test for 1 byte (nl) to end loop.
+	bgt	_start		@ Go prompt user for another line.
+
+	mov	R0,#0		@ Exit code 0 indicates "normal completion"
+	mov	R7,#1		@ Service command code to terminate program
+	svc	0		@ Issue Linux command to terminate program
+
+	.data
+inpbuf:	.ds	BUFSIZE		@ Reserve storage for input data characters
+prompt:	.asciz	"Please enter some text. Enter just ENTER to stop.\n"
+	.end

@@ -1,0 +1,47 @@
+@	Macro "d_int16 leftbit,suffix" displays 16-bit integer "lane" in R1. 
+@		leftbit:	Bit position of left side of lane
+@		space:		String to be output after integer
+@		Note:		All register contents are preserved.
+
+	.macro	d_int16	leftbit,space
+	.set	left,  31-\leftbit
+	push	{R0,R1,LR}	@ Preserve register used by macro call.
+	mov	R0,R1,lsl #left	@ "Shake off" unwanted bits on the left.
+	asr	R0, #16		@ Right justify with sign extended.
+	bl	v_dec		@ Display signed integer.
+	ldr	R1,=\space	@ String to output after integer
+	bl	v_ascz		@ Display text string.
+	pop	{R0,R1,LR}	@ All register contetns are restored.
+	.endm
+
+	.global	_start		@ Set program starting address to linker.
+_start: ldr	R6,=tstval	@ Point to list of test values.
+	ldr	R2,=tab		@ Point to end of list of test values.
+	veor	Q0,Q0		@ Zero out register Q0 (same as D0, D1).
+sample:	vldm	R6!,{D2}	@ Load new 8 "second" operands.
+	vaddw.s8 Q0,Q0,D2	@ Perform 8 additions in parallel
+	vmov	R1,S0		@ Move high word into ARM for display.
+	d_int16	15,tab		@ Display 1st 16-bit integer
+	d_int16	31,tab		@ Display 2nd 16-bit integer
+	vmov	R1,S1		@ Move high word into ARM for display.
+	d_int16	15,tab		@ Display 3rd 16-bit integer
+	d_int16	31,tab		@ Display 4th 16-bit integer
+	vmov	R1,S2		@ Move the low word for display.
+	d_int16	15,tab		@ Display fifth 16-bit integer
+	d_int16	31,tab		@ Display sixth 16-bit integer
+	vmov	R1,S3		@ Move high word into ARM for display.
+	d_int16	15,tab		@ Display seventh 16-bit integer
+	d_int16	31,nl		@ Display eighth 16-bit integer
+	cmp	R2,R6		@ Test for end of list of test values.
+	bgt	sample		@ Cotinue loop for next value in list.
+	mov	R0,#0		@ Status code 0 for "normal completion"
+	mov	R7,#1		@ Code terminates program.
+	svc	0		@ Linux service terminates program
+	.data
+tstval: .byte	-80,-40,-20,0,20,40,60,80
+	.byte	-80,-40,-20,0,20,40,60,80
+	.byte	-80,-40,-20,0,20,40,60,80
+	.byte	-80,-40,-20,0,20,40,60,80
+tab:	.asciz	"\t"		@ Tab to separate integers.
+nl:     .asciz	"\n"		@ End of list and new line character.
+	.end

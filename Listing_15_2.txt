@@ -1,0 +1,33 @@
+	.global	_start		@ Provide program starting address to linker
+_start:	ldr	R6,=tstval	@ Point to list of test values.
+	vldr	S8,[R6]		@ Load pair of floating point numbers to test
+	vldr	S16,[R6,#4]	@ 
+	vldr	S9,[R6,#8]	@* Load second pair of numbers.
+	vldr	S17,[R6,#12]	@* 
+	vldr	S10,[R6,#16]	@* Load third pair of numbers.
+	vldr	S18,[R6,#20]	@* 
+	vmrs	R0,FPSCR	@* Copy floating point PSCR to update it.
+	mov	R1,#2		@* Number of "simultaneous" operations - 1
+	orr	R0,R1, lsl #16	@* Fill the "length" field into FPSCR with 3-1
+	vmsr	FPSCR,R0	@* Restore the floating point PSR.
+	vmul.f32 S24,S8,S16	@ Multiply the three pairs of floating point operands
+	vmov	R0,S24		@ Move product to ARM register for display.
+	bl	v_flt		@ Display floating point number.
+	ldr	R1,=nl		@ Pointer to line ending characters.
+	bl	v_ascz		@ Separate test values with new lines.
+	vmov	R0,S25		@* Move product to ARM register for display.
+	bl	v_flt		@* Display floating point number.
+	bl	v_ascz		@* Separate test values with new lines.
+	vmov	R0,S26		@* Move product to ARM register for display.
+	bl	v_flt		@* Display floating point number.
+	bl	v_ascz		@* Separate test values with new lines.
+
+	mov	R0,#0		@ Status code 0 indicates "normal completion"
+	mov	R7,#1		@ Command code 1 will terminate program
+	svc	0		@ Issue Linux command to terminate program
+
+tstval:	.float	-3.5, 10.5	@ Floating point test values
+	.float	101.0625, 100.0	@*
+	.float	-5.25, -200.0	@*
+nl:	.asciz	"\n"		@ Line ending characters.
+	.end

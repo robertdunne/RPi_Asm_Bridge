@@ -1,0 +1,23 @@
+	.global	_start		@ Provide program starting address to linker
+_start:	ldr	R1,=msgtxt	@ Set R1 pointing to message to be displayed
+	mov	R2,#10		@ Number of bytes in message
+	bl	v_asc		@ Call subroutine to view text string in ASCII.
+	mov	R0,#0		@ Exit Status code set to 0 indicates "normal completion"
+	mov	R7,#1		@ Service command code (1) will terminate this program
+	svc	0		@ Issue Linux command to terminate program
+
+	.data
+msgtxt:	.ascii	"Hey there\n"	@ 10 character message (" " and "\n" each count as 1 char.)
+	.text
+
+@	Subroutine v_asc will display a string of characters
+@		R1: Points to beginning of ASCII string
+@		R2: Contains length of string in bytes
+@		LR: Contains the return address
+@		Registers R0 and R7 will be used by v_asc and not saved
+
+v_asc:	mov	R0,#1		@ Code for stdout (standard output, i.e., monitor display)
+	mov	R7,#4		@ Linux service command code to write string.
+	svc	0		@ Issue command to display string on stdout
+	bx	LR		@ Return to the calling program
+	.end

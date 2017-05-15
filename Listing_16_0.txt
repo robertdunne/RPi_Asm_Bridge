@@ -1,0 +1,23 @@
+@	Subroutine c_ascz will read a string of characters terminated by a null.
+@		R1: Points to first byte of buffer to receive
+@		R2: Maximum number of bytes in above buffer
+@		LR: Contains the return address
+
+@	Returned register contents:
+@		R0: Number of characters read.
+@		    A null will mark end of string
+@		All other register contents will be preserved
+
+	.global	c_ascz		@ Pass entry point name to linker.
+
+c_ascz:	push	{R2,R7}		@ Save contents of registers to be used.
+	mov	R0,#0		@ Stdin (standard input, i.e., the keyboard)
+	mov	R7,#3		@ Linux service command code to read a string.
+	sub	R2,#1		@ Leave room for the null for end of string.
+	svc	0		@ Issue command to read string from stdin.
+	mov	R7,#0		@ Null to mark end of string
+	strb	R7,[R1,R0]	@ Put a null at end of input line.
+	pop	{R2,R7}		@ Restore saved register contents
+	bx	LR		@ Return to the calling program
+	.end
+

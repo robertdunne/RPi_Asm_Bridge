@@ -1,0 +1,27 @@
+	.global	_start		@ Provide program starting address to linker
+	.equ	BUFSIZE,50	@ Size of input buffer can be changed
+
+@	Loop to get next line from user.
+_start:	ldr	R1,=prompt	@ Message asking for input of integer
+	bl	v_ascz		@ Display text line on monitor
+	ldr	R1,=inpbuf	@ Set pointer to input buffer.
+	mov	R2,#BUFSIZE	@ Maximum number of bytes to receive.
+	bl	c_ascz		@ Call subroutine to get keyboard input.
+	mov	R2,R0		@ Save number of characters input.
+
+@	Convert text line to Boolean value and display True or False.
+	bl	c_bool		@ R0 gets 0: False, 1: True
+	bl	v_bool		@ Display True or False.
+	ldr	R1,=newln	@ Pointer to end of line ASCII code.
+	bl	v_ascz		@ Mark end of output with a new line code.
+	cmp	R2,#1		@ Test for one byte (\n) to end loop.
+	bgt	_start		@ Go prompt user for another line.
+	mov	R0,#0		@ Exit code 0 indicates "normal completion"
+	mov	R7,#1		@ Command code to terminate program
+	svc	0		@ Issue Linux command to terminate program
+
+	.data
+inpbuf:	.ds	BUFSIZE		@ Reserve storage for input data characters
+prompt:	.asciz	"Please enter logical value or ENTER to stop.\n"
+newln:	.asciz	"\n"		@ End of line (It will be 0x0A)
+	.end

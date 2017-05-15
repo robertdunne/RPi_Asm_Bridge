@@ -1,0 +1,24 @@
+@	Subroutine c_int will convert input buffer from decimal digits to binary
+@		R1: Points to string of decimal digits terminated with a null byte.
+@		LR: Contains the return address
+@		R0: Returned decimal integer value (converted from ASCII input string)
+@		All register contents except R0 will be preserved.
+
+	.global	c_int		@ Subroutine entry point.
+
+c_int:	push	{R1-R4}		@ Preserve working register contents.
+	mov	R3,#0		@ Integer will be built in register R3..
+	mov	R4,#10		@ Base 10 used to "shift" over each digit.
+
+nxtdig:	ldrb	R0,[R1],#1	@ Load next character from input buffer.
+	subs	R0,#'0'		@ Subtract the ASCII character bias.
+	blt	notdig		@ Check if end of digits has been reached.
+	cmp	R0,#9		@ Check upper limit of digits range.
+	bgt	notdig		@ Go exit if no more digits found.
+	mla	R3,R4,R3,R0	@ Include this digit: [R3] = [R3]*[R4] + [R0]
+	b	nxtdig		@ Continue loop with next digit.
+
+notdig:	mov	R0,R3		@ Return binary number in R0.
+	pop	{R1-R4}		@ Reload saved register contents.
+	bx	LR		@ Return to the calling program.
+	.end

@@ -1,0 +1,5 @@
+	.global	_start		@ Providing program starting address to linker
+_start:	mov	R0,#78		@ Set program Exit Status code to 78 (meaning ...)
+	mov	R7,#1		@ Service command code (1) will terminate this program
+	svc	0		@ Issue Linux command to terminate program
+	.end

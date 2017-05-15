@@ -1,0 +1,33 @@
+	.global	_start		@ Provide program starting address to linker
+_start:	mov	R0,#0b101101	@ An arbitrary sample binary value for testing
+	bl	v_bin		@ Call subroutine to view binary value of R0 in ASCII.
+	mov	R0,#0		@ Exit Status code set to 0 indicates "normal completion"
+	mov	R7,#1		@ Service command code (1) will terminate this program
+	svc	0		@ Issue Linux command to terminate program
+
+@	Subroutine v_bin will display a 32-bit register in binary digits
+@		R0: contains the 32 bit value to be displayed in binary
+@		LR: Contains the return address
+@		Registers R0 through R7 will be used by v_bin and not saved
+
+v_bin:	mov	R3,R0		@ R3 will hold a copy of input word to be displayed.
+	mov	R6,#31		@ Number of bits to display (-1)
+	
+@	Loop through single bits and output each to the standard output (stdout) display.
+
+nxtbit:	mov	R4,#1		@ used to mask off 1 bit at a time for display
+	and	R1,R4,R3,lsr R6	@ Select next 0 or 1 to be displayed.
+	ldr	R5,=dig		@ Pointer to the "01" string of ASCII characters.
+	add	R1,R5		@ Set R1 pointing to "0" or "1" in memory
+	mov	R2,#1		@ Number of characters to be displayed at a time.
+	mov	R0,#1		@ Code for stdout (standard output, i.e., monitor display)
+	mov	R7,#4		@ Linux service command code to write string.
+	svc	0		@ Linux service command code to write string.
+	subs	R6,#1		@ Decrement number of bits remaining to display
+	bge	nxtbit		@ Go display next bit until all 32 displayed
+
+	bx	LR		@ Return to the calling program
+
+	.data
+dig:	.ascii	"01"		@ ASCII string of binary digits 0 and 1
+	.end

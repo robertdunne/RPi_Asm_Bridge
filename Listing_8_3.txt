@@ -1,0 +1,24 @@
+	.global	_start		@ Provide program starting address to linker
+_start:	ldr	R1,=msgtxt	@ Document what is being displayed on monitor
+	bl	v_ascz		@ Display text line on monitor
+	ldr	R1,=blank	@ Set pointer to "blank string" used as number separator.
+	mov	R0,#123		@ Use decimal 123 for test example (could be anything)
+	bl	v_dec		@ Call subroutine to view decimal value of R0 in ASCII.
+	bl	v_ascz		@ Put a blank after the decimal number output to monitor.
+	mov	R2,#0		@ Tell subroutine v_hex to not display leading zeroes.
+	bl	v_hex		@ Call subroutine to view hexadecimal value of R0 in ASCII.
+	bl	v_ascz		@ Put a blank after the hexadecimal number output to monitor.
+	mov	R2,#8		@ Number of bits desired for binary display
+	bl	v_bin		@ Call subroutine to view binary value of R0 in ASCII.
+	ldr	R1,=newln	@ Set pointer to "new line" character string.
+	bl	v_ascz		@ Put a carriage return / line feed after binary display.
+
+	mov	R0,#0		@ Exit Status code set to 0 indicates "normal completion"
+	mov	R7,#1		@ Service command code (1) will terminate this program
+	svc	0		@ Issue Linux command to terminate program
+
+	.data
+msgtxt:	.asciz	"Decimal, hexadecimal, and binary: "	@ label for output line to monitor
+blank:	.asciz	" "		@ Separator for display (blank)
+newln:	.asciz	"\n"		@ End of line (It will be 0x0A)
+	.end

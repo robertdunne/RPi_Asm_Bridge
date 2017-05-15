@@ -1,0 +1,21 @@
+	.global	_start		@ Provide program starting address to linker
+_start:	ldr	R6,=tstlst	@ Point to list of test values.
+sample:	ldr	R0,[R6],#4	@ Load next 32-bit "fraction" test value.
+	bl	v_flt0		@ Call subroutine to display "fraction" in R0 as ASCII.
+	cmp	R0,#0		@ Test if we've reached end of list of test values.
+	bne	sample		@ Stop test loop after processing a zero value.
+
+	mov	R0,#0		@ Exit Status code set to 0 indicates "normal completion"
+	mov	R7,#1		@ Service command code (1) will terminate this program
+	svc	0		@ Issue Linux command to terminate program
+
+	.data
+tstlst:				@ List of test fractions.
+F1_2:	.word	0x80000000	@ .5      (1/2)
+F1_4:	.word	0x40000000	@ .25     (1/4)
+F7_8:	.word	0xE0000000	@ .875    (7/8)
+F9_16:	.word	0x90000000	@ .5625   (9/16)
+F1_32:	.word	0x08000000	@ .03125  (1/32)
+F63_64:	.word	0xFC000000	@ .984375 (63/64)
+	.word	0		@ End of list
+	.end

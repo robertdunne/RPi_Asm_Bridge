@@ -1,0 +1,7 @@
+	.global	_start		@ Provide program starting address to linker
+_start:	mov	R0,#0b1011	@ Use binary 1011 as first value for test
+	mov	R6,#0b1100	@ Use binary 1100 as second value for test
+	and	R0,R6		@ [R0] = [R0] & [R6] or 1011 & 1100 = 1000 (decimal 8)
+	mov	R7,#1		@ Service command code (1) will terminate this program
+	svc	0		@ Issue Linux command to terminate program
+	.end

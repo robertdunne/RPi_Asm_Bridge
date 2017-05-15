@@ -1,0 +1,21 @@
+	.global	_start		@ Program starting address for linker
+_start:	ldr	R6,=tstlst	@ Point to list of test values.
+sample:	ldr	R0,[R6],#4	@ Load next "instruction" to disassemble.
+	bl	das_dp		@ Display "data processing" instruction.
+	cmp	R0,#0		@ Test if end of list of test values.
+	bne	sample		@ Stop test loop after a zero value.
+	mov	R0,#0		@ Exit Status code 0 for "normal completion"
+	mov	R7,#1		@ Service code 1 terminates program.
+	svc	0		@ Issue Linux command to stop program
+
+@	List of data processing type instructions to test disassembly.
+
+tstlst:	mov	R4,#512		@ Move immediate value
+	addne	R1,R5		@ Add with conditional execution
+	ands	R0,R3,#0xFF	@ Immediate value with setting CPSR bits
+	lsr	R2,R3,#7	@ Move instruction with shift.
+	andeqs	R2,#0b11110	@ Immediate with CPSR bits used twice
+	ror	R5,R2		@ Simple move with rotate
+	eor	R5,R6,R7,lsr R8 @ Using four different registers
+	.word	0		@ End of list of instructions.
+	.end

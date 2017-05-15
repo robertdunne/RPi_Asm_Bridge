@@ -1,0 +1,7 @@
+	.global	_start		@ Provide program starting address to linker
+_start:	mov	R0,#17		@ Use 17 for test example (could be anything)
+	mov	R6,#2		@ A second integer for test
+	add	R0,R6		@ Add R6 contents to R0 ([R0] = [R0] + [R6]) or 17+2=19
+	mov	R7,#1		@ Service command code (1) will terminate this program
+	svc	0		@ Issue Linux command to terminate program
+	.end

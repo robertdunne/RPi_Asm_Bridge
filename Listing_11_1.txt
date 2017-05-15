@@ -1,0 +1,29 @@
+@	Subroutine v_flt0 will display a "fraction" in decimal digits
+@		R0: contains the number to be displayed
+@		    Bit 31 = 1/2, Bit 30 = 1/4, Bit 29 = 1/8, Bit 28 = 1/16, ...
+@		LR: Contains the return address
+@		All register contents will be preserved
+
+	.global	v_flt0		@ Provide entry point address to linker
+
+v_flt0:	push	{R0-R8,LR}	@ Save contents of registers R0 through R8 and LR.
+	mov	R3,R0		@ R3 will hold a copy of input word to be displayed.
+	mov	R4,#10		@ Base 10 used to "shift" over each digit.
+	ldr	R5,=dig		@ Set R5 pointing to "0123456789" string
+	mov	R2,#1		@ Number of characters to be displayed at a time.
+	mov	R0,#1		@ Code for stdout (standard output, i.e., monitor display)
+	mov	R7,#4		@ Linux service command code to write string.
+
+@	Loop through powers of 10 and display each digit on the standard output (stdout).
+
+nxtdfd:	umull	R3,R1,R4,R3	@ "Shift" next decimal digit into register R1.
+	add	R1,R5		@ Set pointer to digit in "0123456789"
+	svc	0		@ Write out one digit.
+	cmp	R3,#0		@ Set Z flag if mantissa is now zero.
+	bne	nxtdfd		@ Go display next decimal digit.
+
+	pop	{R0-R8,LR}	@ Restore saved register contents.
+	bx	LR		@ return to the calling program
+
+dig:	.ascii	"0123456789"	@ ASCII string of digits 0 through 9.
+	.end

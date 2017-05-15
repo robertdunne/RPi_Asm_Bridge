@@ -1,0 +1,67 @@
+@	Subroutine das_ls will disassemble and display "load/store" instructions.
+@		R0: contains the instruction to be disassembled and displayed
+@		LR: Contains the return address
+@		All register contents will be preserved
+
+	.global	das_ls		@ Provide program starting address to linker
+
+das_ls:	push	{R0-R4,LR}	@ Save contents of registers R0 -> R4 and LR.
+	mov	R3,R0		@ Move "instruction" to R3.
+
+@	The opcode mnemonic display depends on L and B bits in instruction
+@		20: L(oad)	=1, output "LDR" for load register
+@				=0, output "STR" for store register
+@		22: B(yte)	=1, output "B" for byte load or store
+@				=0, output nothing (implies 32-bit word)
+
+	tst	R3,#1<<20	@ Test if this is a load or store instruction.
+	ldrne	R1,=ldr_op	@ Load pointer to string "LDR"
+	ldreq	R1,=str_op	@ Load pointer to string "STR"
+	bl	v_ascz		@ Output the load or store opcode name.
+	ldr	R1,=b_op	@ Load pointer to string "B"
+	tst	R3,#1<<22	@ Test if this is a byte or word instruction.
+	blne	v_ascz		@ Output the "B" for byte instructions.
+
+@	Display the destination and source registers
+@		Bits 12-15:	Destination register R0 through R15
+@		Bits 16_19:	Source register R0 through R15
+
+	ldr	R1,=tabr	@ Pointer to horizontal tab and "R" string
+	bl	v_ascz		@ Tab and "R" precede destination register.
+	mov	R0,R3,lsl #16	@ Left justify the destination register ID
+	lsr	R0,#28		@ Right justify register ID in R0
+	bl	v_dec		@ Display a number (0 through 15)
+
+	ldr	R1,=comlb	@ Pointer to ",[R" string.
+	bl	v_ascz		@ ",[R" precedes source register.
+	mov	R0,R3,lsl #12	@ Remove 12 bits left of the source ID
+	lsr	R0,#28		@ Right justify register ID in R0
+	bl	v_dec		@ Display a number (0 through 15)
+
+@	Finish the instruction with the post-indexed increment.
+
+	ldr	R1,=rbch	@ Pointer to "],#" string.
+	bl	v_ascz		@ "],#" precedes post indexed increment.
+	ldr	R1,=minus	@ Load pointer to string "-"
+	tst	R3,#1<<23	@ Test if increment is Up or Down.
+	bleq	v_ascz		@ Output the minus sign if "Down".
+	mov	R0,R3,lsl #20	@ Left justify lower 12 bits.
+	lsr	R0,#20		@ Offset is now right justified.
+	bl	v_dec		@ Display the number 0 through 4095.
+	ldr	R1,=lf		@ Pointer to line feed string.
+	bl	v_ascz		@ End the instruction with a new line.
+
+	pop	{R0-R4,LR}	@ Restore saved register contents.
+	bx	LR		@ Return to the calling program
+
+@	Strings used to format the instruction disassembly
+
+ldr_op:	.asciz	"\tLDR"		@ Opcode mnemonic for load register
+str_op:	.asciz	"\tSTR"		@ Opcode mnemonic for store register
+b_op:	.asciz	"B"		@ Opcode suffix for byte instruction
+tabr:	.asciz	"\tR"		@ Precedes destination register
+comlb:	.asciz	",[R"		@ Precedes source register
+rbch:	.asciz	"],#"		@ Precedes post-indexed increment value.
+minus:	.asciz	"-"		@ Negative sign for decrementing index.
+lf:	.asciz	"\n"		@ End of line character
+	.end

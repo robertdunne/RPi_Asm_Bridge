@@ -1,0 +1,68 @@
+@	Subroutine c_int will convert input buffer from decimal, hexadecimal (0x...), 
+@		octal (0...), and binary (0b...) digits to integer.
+@		Leading blanks and tabs will be ignored.
+@		R1: Points to string of digits terminated with a non-digit.
+@		LR: Contains the return address
+@		R0: Returned integer value (converted from ASCII input string)
+@		All register contents except R0 will be preserved.
+
+	.global	c_int		@ Externalize subroutine entry point for linker.
+
+c_int:	push	{R1-R4}		@ Preserve working register contents.
+
+@	Skip over any leading blanks or horizontal tabs.
+
+skpblk:	ldrb	R0,[R1],#1	@ Load next character from input buffer.
+	cmp	R0,#9		@ Check ASCII code for horizontal tab.
+	beq	skpblk		@ Continue search for non-blank, non-tab.
+	cmp	R0,#' '		@ Check ASCII code for blank.
+	beq	skpblk		@ Continue search for non-blank, non-tab.
+	mov	R3,#0		@ Integer will be built in register R3.
+
+@	Check whether binary, octal, decimal, or hexadecimal.
+
+	mov	R4,#10		@ Base 10 used to "shift" over each digit.
+	cmp	R0,#'0'		@ Test for a leading zero (such as 0x or 0b).
+	bne	chkdig		@ If no leading zero, use the default base 10.
+	ldrb	R0,[R1],#1	@ Load the character after the zero.
+	mov	R4,#16		@ Assume it's going to be hexadecimal.
+	cmp	R0,#'X'		@ 0X... says it's hexadecimal.	
+	cmpne	R0,#'x'		@ 0x... says it's hexadecimal.
+	beq	nxtdig		@ Go process base 16 digits.
+	mov	R4,#8		@ Assume it's going to be octal (no b or h).
+	cmp	R0,#'B'		@ 0B... says it's binary.	
+	cmpne	R0,#'b'		@ 0b... says it's binary.
+	bne	chkdig		@ Go process base 8 digits.
+	mov	R4,#2		@ B and b says it's binary.
+
+@	Load next character and test if it's 0..9 or A..F or a..f
+
+nxtdig:	ldrb	R0,[R1],#1	@ Load next character from input buffer.
+chkdig:	cmp	R0,#'9'		@ Check whether a posible digit or letter
+	ble	chk09		@ Go finish check on 0..9 range
+
+@	For hexadecimal, map A..F and a..f to 10..15.
+
+	orr	R0,#0x20	@ Map upper case letters to lower case.
+	cmp	R0,#'f'		@ Check upper limit of "a through f".
+	bgt	exit		@ Go exit if end of number reached.
+	subs	R0,#'a'		@ Check lower limit of "a through f".
+	blt	exit		@ Go exit if end of number reached.
+	add	R0,#10+'0'	@ 'A' .. 'F' is 10 .. 15
+
+@	Map character 0..9 to number 0..9.
+	
+chk09:	subs	R0,#'0'		@ Subtract off the character bias.
+	blt	exit		@ Go exit if end of number reached.
+
+@	Include this digit in number being constructed.
+
+	cmp	R0,R4		@ Test upper limit of base: 2, 8, 10, or 16.
+	bge	exit		@ Go exit if digit is out of range.
+	mla	R3,R4,R3,R0	@ Include this digit: [R3] = [R3]*[R4] + [R0]
+	b	nxtdig		@ Continue loop with next digit.
+
+exit:	mov	R0,R3		@ Return binary number in R0.
+	pop	{R1-R4}		@ Reload saved register contents.
+	bx	LR		@ Return to the calling program.
+	.end

@@ -1,0 +1,10 @@
+	.global	_start		@ Provide program starting address to linker
+_start:	mov	R4,#48		@ Load immediate 0x30 into register R4.
+	.word	0xE3A05030	@ Load R5 with 0x30 rotated 0 bits to the right
+	.word	0xE3A06E03	@ Load R6 with 0x3 rotated 28 bits to the right
+	.word	0xE3A07F0C	@ Load R7 with 0xC rotated 30 bits to the right
+	.word	0xE3A081C0	@ Load R8 with 0xC0 rotated 2 bits to the right
+	mov	R0,#0		@ Exit Status code set to 0 indicates "normal completion"
+	mov	R7,#1		@ Service command code (1) will terminate this program
+	svc	0		@ Issue Linux command to terminate program
+	.end

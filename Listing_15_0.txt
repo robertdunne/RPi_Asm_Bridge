@@ -1,0 +1,15 @@
+	.global	_start		@ Provide program starting address to linker
+_start:	ldr	R6,=tstval	@ Point to list of test values.
+	vldr	S8,[R6]		@ Load pair of floating point numbers to test
+	vldr	S16,[R6,#4]	@ 
+	vmul.f32 S24,S8,S16	@ Multiply S8 and S16 with product going into S24.
+	vmov	R0,S24		@ Move the product back into ARM register for display.
+	bl	v_flt		@ Call subroutine to display floating point number.
+	ldr	R1,=nl		@ Pointer to line ending character.
+	bl	v_ascz		@ Separate the floating point result.
+	mov	R0,#0		@ Exit Status code set to 0 indicates "normal completion"
+	mov	R7,#1		@ Service command code (1) will terminate this program
+	svc	0		@ Issue Linux command to terminate program
+tstval:	.float	-3.5, 10.5	@ Floating point test values
+nl:	.asciz	"\n"		@ Line ending characters.
+	.end

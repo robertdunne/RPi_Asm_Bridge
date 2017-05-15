@@ -1,0 +1,10 @@
+	.global	_start		@ Provide program starting address to linker
+_start:	ldr	R1,=msgtxt	@ Set R1 pointing to message to be displayed
+	bl	v_ascz		@ Call subroutine to view text string in ASCII.
+	mov	R0,#0		@ Exit Status code set to 0 indicates "normal completion"
+	mov	R7,#1		@ Service command code (1) will terminate this program
+	svc	0		@ Issue Linux command to terminate program
+
+	.data
+msgtxt:	.asciz	"Hey there\n"	@ Message terminated by a null byte (all 8 bits = 0).
+	.end

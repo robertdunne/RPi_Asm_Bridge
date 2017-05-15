@@ -1,0 +1,5 @@
+~$ nano    model.s
+~$ as   -o model.o model.s
+~$ ld   -o model model.o
+~$ ./model
+~$ echo $?

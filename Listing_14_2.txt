@@ -1,0 +1,25 @@
+	.global	_start		@ Program starting address for linker
+_start: ldr	R6,=tstval	@ Point to list of test values.
+	veor.64	D2,D2		@ Initialize running total to zero.
+sample: vldm	R6!,{D0,D1}	@ Load next two 64-bit values.
+	vmla.f64 D2,D0,D1	@ Multiply 2 operands and add to total.
+	vcvt.f32.f64 S0,D2	@ Convert running total to single precision
+	vmov	R0,S0		@ Move the total to ARM for display.
+	bl	v_flt		@ Subroutine displays floating point number.
+	ldr	R1,=nl		@ Pointer to line ending characters.
+	bl	v_ascz		@ Separate the floating point test values.
+	cmp	R1,R6		@ Test if end of list of test values.
+	bgt	sample		@ Stop test loop at end of list.
+	mov	R0,#0		@ Status 0 indicates "normal completion"
+	mov	R7,#1		@ Command code to terminate this program.
+	svc	0		@ Issue Linux command to terminate program
+	.data
+tstval: .double	3.0, 10.0	@ Double precision floating point
+	.double	0.25, -1.0
+	.double	100.0, 1234.567
+	.double	-9876.543, 7070.7070
+	.double	3.3333, 694.3e-9
+	.double	6.0221e2, 6.0221e23
+	.double	0, 0		@ End of list
+nl:     .asciz	"\n"		@ Line ending characters.
+	.end

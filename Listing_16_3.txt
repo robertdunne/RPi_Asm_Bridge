@@ -1,0 +1,38 @@
+	.global	_start		@ Provide program starting address to linker
+	.equ	BUFSIZE,50	@ Size of input buffer can be changed
+
+@	Loop to get next line from user.
+
+_start:	ldr	R1,=prompt	@ Message asking for input of integer
+	bl	v_ascz		@ Display text line on monitor
+	ldr	R1,=inpbuf	@ Set pointer to input buffer.
+	mov	R2,#BUFSIZE	@ Maximum number of bytes to receive.
+	bl	c_ascz		@ Call subroutine to get keyboard input.
+	cmp	R0,#1		@ Test for 1 byte (nl) to end loop.
+	ble	exit		@ Exit if nothing but ENTER entered.
+
+@	Display the characters of input line in hexadecimal.
+
+	mov	R4,R1		@ R4 will point to next character to display
+	mov	R5,R0		@ R5 will "count down" the number of bytes.
+	ldr	R1,=spacer	@ A blank will separate each hex number
+	mov	R2,#2		@ Display 2 hex digits for each byte.
+nxtchr:	ldrb	R0,[R4],#1	@ Get next byte from input buffer
+	bl	v_hex		@ Display contents of R0 as 2 hex digits.
+	bl	v_ascz		@ Put a blank after the number
+	subs	R5,#1		@ Decrement number of bytes to display.
+	bgt	nxtchr		@ Go display next character in input buffer.
+	ldr	R1,=newln	@ Pointer to end of line ASCII code.
+	bl	v_ascz		@ Mark end of output with a new line code.
+	b	_start		@ Go prompt user for another line.
+
+exit:	mov	R0,#0		@ Exit code 0 indicates "normal completion"
+	mov	R7,#1		@ Service command code to terminate program
+	svc	0		@ Issue Linux command to terminate program
+
+	.data
+inpbuf:	.ds	BUFSIZE		@ Reserve storage for input data characters
+prompt:	.asciz	"Please enter some text or only ENTER to stop.\n"
+spacer:	.asciz	" "		@ Separator for display (comma, blank)
+newln:	.asciz	"\n"		@ End of line (It will be 0x0A)
+	.end
