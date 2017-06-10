@@ -1,0 +1,21 @@
+	.global	_start		@ Set program starting address to linker.
+_start: ldr	R6,=tstval	@ Point to list of test values.
+	ldr	R3,=nl		@ Point to end of list of test values.
+sample:	ldr	R0,[R6],#4	@ Load next integer (bit pattern).
+	clz	R1,R0		@ Get number of zero bits left of first one.
+	lsl	R0,R1		@ Left justify original bit pattern.
+	mov	R2,#8		@ Display the full 32-bit word.
+	bl	v_hex		@ Display left justified pattern
+	ldr	R1,=nl		@ display one value per line.
+	bl	v_ascz
+	cmp	R3,R6		@ Test for end of list of test values.
+	bgt	sample		@ Cotinue loop for next value in list.
+	mov	R0,#0		@ Status code 0 for "normal completion"
+	mov	R7,#1		@ Code terminates program.
+	svc	0		@ Linux cservice terminates program.
+	.data
+tstval: .word	1,0b10,0b101,0b1111
+	.word	1<<30,-1,1108,6600
+nl:     .asciz	"\n"		@ End of list and new line character.
+	.end
+

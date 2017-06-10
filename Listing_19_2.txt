@@ -1,0 +1,30 @@
+@	Macro d_bin displays value in NEON 32-bit register.
+	.macro	d_bin reg	
+	vmov	R0,\reg		@ Pointer to string to output before integer
+	mov	R2,#8		@ Display all 32 bits.
+	bl	v_hex		@ Display left justified binary pattern.
+	ldr	R1,=nl		@ Display one value per line.
+	bl	v_ascz		@ Call one of the display subroutines in view.o.
+	.endm
+
+	.global	_start		@ Set program starting address to linker.
+_start: ldr	R6,=tstval	@ Point to list of test values.
+	ldr	R3,=nl		@ Point to end of list of test values.
+sample:	vldm	R6!,{Q0}	@ Load next 4 32-bit words.
+	vclz.U32 Q1,Q0		@ Count the leading zeroes
+	vshl.U32 Q0,Q1		@ Left justify each 32-bit word.
+	d_bin	S0		@ Display the four left justified patterns.
+	d_bin	S1		@
+	d_bin	S2		@
+	d_bin	S3		@
+	cmp	R3,R6		@ Test for end of list of test values.
+	bgt	sample		@ Cotinue loop for next value in list.
+	mov	R0,#0		@ Status code 0 for "normal completion"
+	mov	R7,#1		@ Code terminates program.
+	svc	0		@ Linux cservice terminates program.
+	.data
+tstval: .word	1,0b10,0b101,0b1111
+	.word	1<<30,-1,1108,6600
+nl:     .asciz	"\n"		@ End of list and new line character.
+	.end
+
