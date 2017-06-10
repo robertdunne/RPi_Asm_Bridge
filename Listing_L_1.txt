@@ -1,0 +1,39 @@
+	.global	thesum	@ Subroutine entry address to linker
+	.global	fcnsum	@ Function entry address to linker
+
+@	Subroutine thesum adds a variable number of integers.
+@		R0: Memory address of variable to receive the sum.
+@		R1: Memory address of array of integer values
+@		R2: Number of integers in the array 
+@		LR: Contains the return address
+@		Registers R1 through R3 will be not saved.
+
+thesum:	ldr	R3,[R1],#4	@ Load first value.
+	subs	R2,#1		@ Decrement number of integers.
+	ble	retsub		@ Return with just one value.
+	push	{R4} 		@ R4 contents must be preserved.
+thelp:	ldr	R4,[R1],#4	@ Load next interger in list.
+	add	R3,R4		@ Add it to the running total.
+	subs	R2,#1		@ Number of integers still to add.
+	bne	thelp		@ Continue with next integer
+	pop	{R4}
+retsub:	str	R3,[R0]		@ Return sum to calling program
+	bx	LR		@ Return to calling program
+
+@	Function fcnsum adds a variable number of integers.
+@		R0: Memory address of array of integer values
+@		R1: Number of integers in the array 
+@		LR: Contains the return address
+@		R0: Return calculated sum to calling program.
+@		Registers R0 through R3 will be not saved.
+
+fcnsum:	ldr	R3,[R0],#4	@ Load first value.
+	subs	R1,#1		@ Decrement number of integers.
+	ble	retfcn		@ Return with just one value.
+fcnlp:	ldr	R2,[R0],#4	@ Load next interger in list.
+	add	R3,R2		@ Add it to the running total.
+	subs	R1,#1		@ Number of integers still to add.
+	bne	fcnlp		@ Continue with next integer
+retfcn:	mov	R0,R3		@ Return sum to calling program
+	bx	LR		@ Return to calling program
+	.end
