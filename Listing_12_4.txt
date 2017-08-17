@@ -24,5 +24,5 @@ tstval:	.float	0.5		@ .5      (1/2)
 	.float	6.0221e2
 	.float	6.0221e23
 	.word	0		@ End of list
-nl:	.asciz	"/n"		@ Line ending characters.
+nl:	.asciz	"\n"		@ Line ending characters.
 	.end
