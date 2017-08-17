@@ -2,7 +2,7 @@
 _start:	ldr	R6,=tstval	@ Point to list of test values.
 sample:	ldr	R0,[R6],#4	@ Load next 32-bit floating point test value.
 	bl	v_flt		@ Subroutine to display floating point number.
-	ldr	R1,nl		@ Pointer to line ending characters.
+	ldr	R1,=nl		@ Pointer to line ending characters.
 	bl	v_ascz		@ Separate the test values with new lines.
 	cmp	R0,#0		@ Test if end of list of test values.
 	bne	sample		@ Stop test loop after processing a zero value.
@@ -24,5 +24,5 @@ tstval:	.float	0.5		@ .5      (1/2)
 	.float	6.0221e2
 	.float	6.0221e23
 	.word	0		@ End of list
-nl:	.asciz	"/n"		@ Line ending characters.
+nl:	.asciz	"\n"		@ Line ending characters.
 	.end
